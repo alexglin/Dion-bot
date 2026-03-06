@@ -1,0 +1,76 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  
+  <title>MkDown.html</title>
+  
+</head>
+<body>
+  <h1 id="dion-bot">Dion-bot</h1>
+<p>Dion Бот для оповещения zabbix alert</p>
+<p>Установка Python<br />
+На сервере:<br />
+sudo apt update<br />
+sudo apt install -y python3 python3-venv python3-pip<br />
+mkdir -p /opt/dion-zabbix-bot<br />
+cd /opt/dion-zabbix-bot<br />
+python3 -m venv venv<br />
+source venv/bin/activate<br />
+pip install flask requests python-dotenv</p>
+<p>Файл .env<br />
+Создай файл /opt/dion-zabbix-bot/.env<br />
+<a href="&#x6d;&#97;i&#x6c;&#x74;&#111;&#x3a;&#66;&#79;&#84;&#95;&#x45;&#77;&#x41;I&#x4c;&#x3d;b&#x6f;&#x74;&#x40;&#x65;&#x78;a&#x6d;&#112;&#108;e&#x2e;&#x6c;&#x6f;&#x63;&#x61;l">B&#x4f;&#84;_&#69;&#x4d;&#65;I&#76;&#61;&#x62;&#111;&#116;&#x40;ex&#97;&#109;&#112;&#108;e&#x2e;&#108;&#111;&#99;&#x61;&#x6c;</a><br />
+BOT_PASSWORD=password<br />
+BOT_NAME=Zabbix Dion Bot<br />
+BIND_HOST=0.0.0.0<br />
+BIND_PORT=8080  #( выбираем любой порт )<br />
+DEFAULT_PARSE_MODE=Markdown<br />
+STATE_FILE=/opt/dion-zabbix-bot/state.json</p>
+<p>Запуск в ручном режиме <br />
+cd /opt/dion-zabbix-bot<br />
+source venv/bin/activate<br />
+python3 bot.py</p>
+<p>Найди бота в Dion<br />
+Напиши ему /start<br />
+Или добавь его в группу и тоже напиши /start<br />
+После этого бот запомнит chat_id.</p>
+<p>Проверить, какие чаты подключены к боту :</p>
+<p>curl <a href="http://127.0.0.1:8080/debug/chats">http://127.0.0.1:8080/debug/chats</a></p>
+<p>Проверка вручную<br />
+Как полчучишь chat_id, можно руками проверить отправку алерта:</p>
+<p>curl -X POST <a href="http://127.0.0.1:8080/zabbix">http://127.0.0.1:8080/zabbix</a> \<br />
+  -H 'Content-Type: application/json' \<br />
+  -d '{<br />
+    "chat_id": "UUID_ЧАТА",<br />
+    "subject": "Problem: Linux host is unavailable",<br />
+    "message": "Host: srv-monitor-01\nTrigger: ICMP ping failed\nTime: 2026-03-06 12:30:00",<br />
+    "severity": "High",<br />
+    "host": "srv-monitor-01",<br />
+    "event_id": "123456"<br />
+  }'</p>
+<p>Для работы бота в автоматическом режиме </p>
+<p>Создать  nano /etc/systemd/system/dion-zabbix-bot.service</p>
+<p>[Unit]<br />
+Description=Dion Zabbix Bot<br />
+After=network-online.target<br />
+Wants=network-online.target</p>
+<p>[Service]<br />
+Type=simple<br />
+User=root<br />
+WorkingDirectory=/opt/dion-zabbix-bot<br />
+EnvironmentFile=/opt/dion-zabbix-bot/.env<br />
+ExecStart=/opt/dion-zabbix-bot/venv/bin/python /opt/dion-zabbix-bot/bot.py<br />
+Restart=always<br />
+RestartSec=5</p>
+<p>[Install]<br />
+WantedBy=multi-user.target</p>
+<p>после запустить команды для запуска</p>
+<p>sudo systemctl daemon-reload<br />
+sudo systemctl enable --now dion-zabbix-bot<br />
+sudo systemctl status dion-zabbix-bot</p>
+<p>дебаг ошибок journalctl -u dion-zabbix-bot -f </p>
+</body>
+</html>
+  
