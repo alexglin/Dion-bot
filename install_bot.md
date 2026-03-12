@@ -46,15 +46,16 @@ curl http://127.0.0.1:8080/debug/chats
 Проверка вручную
 Как полчучишь chat_id, можно руками проверить отправку алерта:
 
-curl -X POST http://127.0.0.1:8080/zabbix \
+curl -X POST http://127.0.0.1:8085/zabbix \
   -H 'Content-Type: application/json' \
+  -H 'X-Webhook-Token: CHANGE_ME_TO_LONG_RANDOM_SECRET' \
   -d '{
-    "chat_id": "UUID_ЧАТА",
-    "subject": "Problem: Linux host is unavailable",
-    "message": "Host: srv-monitor-01\nTrigger: ICMP ping failed\nTime: 2026-03-06 12:30:00",
-    "severity": "High",
-    "host": "srv-monitor-01",
-    "event_id": "123456"
+    "chat_id": "РЕАЛЬНЫЙ_CHAT_ID",
+    "subject": "Test alert",
+    "message": "Проверка защищённого webhook",
+    "severity": "Average",
+    "host": "test-host",
+    "event_id": "12345"
   }'
 
 
@@ -83,10 +84,25 @@ WantedBy=multi-user.target
 
 после запустить команды для запуска
 
+sudo systemctl stop dion-zabbix-bot
 sudo systemctl daemon-reload
-sudo systemctl enable --now dion-zabbix-bot
+sudo systemctl restart dion-zabbix-bot
 sudo systemctl status dion-zabbix-bot
+
 
 
 дебаг ошибок journalctl -u dion-zabbix-bot -f 
 
+Zabbix Media type
+
+
+Name	Value
+URL	http://ip:8085/zabbix
+HTTPProxy	
+To	РЕАЛЬНЫЙ_UUID_ЧАТА
+Token	тот же секрет что в WEBHOOK_TOKEN
+Subject	{ALERT.SUBJECT}
+Message	{ALERT.MESSAGE}
+Severity	{EVENT.SEVERITY}
+Host	{HOST.NAME}
+EventID	{EVENT.ID}

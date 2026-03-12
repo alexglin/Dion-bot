@@ -18,6 +18,13 @@ BIND_HOST = os.getenv("BIND_HOST", "0.0.0.0")
 BIND_PORT = int(os.getenv("BIND_PORT", "8085"))
 STATE_FILE = os.getenv("STATE_FILE", "/opt/dion-zabbix-bot/state.json")
 
+ALLOWED_IPS = {
+    ip.strip()
+    for ip in os.getenv("ALLOWED_IPS", "127.0.0.1").split(",")
+    if ip.strip()
+}
+WEBHOOK_TOKEN = os.getenv("WEBHOOK_TOKEN", "").strip()
+
 BASE_URL = "https://bots-api.dion.vc"
 TOKEN_URL = f"{BASE_URL}/platform/v1/token"
 GET_ME_URL = f"{BASE_URL}/chats/v2/getMe"
@@ -29,6 +36,30 @@ GET_UPDATES_URL = f"{BASE_URL}/chats/v2/getUpdates"
 TOKEN_TTL_SECONDS = 11 * 60 * 60
 
 app = Flask(__name__)
+
+
+def get_client_ip() -> str:
+    return (request.remote_addr or "").strip()
+
+
+def is_ip_allowed(ip: str) -> bool:
+    return ip in ALLOWED_IPS
+
+
+def check_webhook_access() -> Optional[tuple]:
+    client_ip = get_client_ip()
+
+    if not is_ip_allowed(client_ip):
+        print(f"[security] denied by ip: {client_ip}", flush=True)
+        return jsonify({"ok": False, "error": "forbidden ip"}), 403
+
+    if WEBHOOK_TOKEN:
+        token = request.headers.get("X-Webhook-Token", "").strip()
+        if token != WEBHOOK_TOKEN:
+            print(f"[security] denied by token from ip={client_ip}", flush=True)
+            return jsonify({"ok": False, "error": "invalid token"}), 403
+
+    return None
 
 
 class DionBot:
@@ -276,16 +307,25 @@ bot = DionBot()
 
 @app.route("/health", methods=["GET"])
 def health():
-    return jsonify({"status": "ok"}), 200
+    client_ip = get_client_ip()
+    return jsonify({"status": "ok", "client_ip": client_ip}), 200
 
 
 @app.route("/debug/chats", methods=["GET"])
 def debug_chats():
+    access_error = check_webhook_access()
+    if access_error:
+        return access_error
+
     return jsonify(bot.known_chats()), 200
 
 
 @app.route("/zabbix", methods=["POST"])
 def zabbix_webhook():
+    access_error = check_webhook_access()
+    if access_error:
+        return access_error
+
     raw_body = request.data.decode("utf-8", errors="ignore")
     print(f"[zabbix] raw request={raw_body}", flush=True)
 
@@ -335,6 +375,8 @@ def bootstrap() -> None:
         raise RuntimeError("BOT_EMAIL or BOT_PASSWORD is empty in environment")
 
     print("[init] bootstrap started", flush=True)
+    print(f"[init] allowed_ips={sorted(ALLOWED_IPS)}", flush=True)
+    print(f"[init] webhook_token_set={'yes' if WEBHOOK_TOKEN else 'no'}", flush=True)
 
     me = bot.get_me()
     print(f"[init] getMe={me}", flush=True)

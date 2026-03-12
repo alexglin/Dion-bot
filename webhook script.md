@@ -1,5 +1,3 @@
-Zabbix media webhook script добавить 
-
 var params = JSON.parse(value);
 
 if (!params.URL) {
@@ -22,6 +20,10 @@ var payload = {
 var req = new HttpRequest();
 req.addHeader('Content-Type: application/json');
 
+if (params.Token) {
+    req.addHeader('X-Webhook-Token: ' + params.Token);
+}
+
 if (params.HTTPProxy) {
     req.setProxy(params.HTTPProxy);
 }
@@ -38,4 +40,3 @@ if (status < 200 || status >= 300) {
 }
 
 return 'OK';
-
